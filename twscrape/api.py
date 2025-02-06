@@ -5,7 +5,7 @@ from typing_extensions import deprecated
 
 from .accounts_pool import AccountsPool
 from .logger import set_log_level
-from .models import Tweet, User, parse_tweet, parse_tweets, parse_user, parse_users
+from .models import Tweet, User, parse_lists, parse_tweet, parse_tweets, parse_user, parse_users
 from .queue_client import QueueClient
 from .utils import encode_params, find_obj, get_by_path
 
@@ -167,10 +167,17 @@ class API:
                 yield x
 
     async def search(self, q: str, limit=-1, kv=None):
+        product = None
+        if kv is not None:
+            product = kv.get("product", product)
         async with aclosing(self.search_raw(q, limit=limit, kv=kv)) as gen:
             async for rep in gen:
-                for x in parse_tweets(rep.json(), limit):
-                    yield x
+                if product == "Lists":
+                    for x in parse_lists(rep.json(), limit):
+                        yield x
+                else:
+                    for x in parse_tweets(rep.json(), limit):
+                        yield x
 
     # user_by_id
 

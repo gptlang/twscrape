@@ -264,6 +264,32 @@ class Tweet(JSONTrait):
 
         return doc
 
+@dataclass
+class List(JSONTrait):
+    id: int
+    id_str: str
+    name: str
+    description: str
+    member_count: int
+    subscriber_count: int
+    created: datetime
+    mode: str # Public/Private
+    owner: str # user id who created the list
+
+    @staticmethod
+    def parse(obj: dict, res=None):
+        data = obj.get("list", obj) # Handle nested "list" object
+        return List(
+            id=int(data["id_str"]),
+            id_str=data["id_str"], 
+            name=data["name"],
+            description=data["description"],
+            member_count=data["member_count"],
+            subscriber_count=data["subscriber_count"],
+            created=datetime.fromtimestamp(data["created_at"]/1000), # Convert milliseconds to datetime
+            mode=data["mode"],
+            owner=data["user_results"]["result"]["legacy"]["screen_name"]
+        )
 
 @dataclass
 class MediaPhoto(JSONTrait):
@@ -632,13 +658,14 @@ def _parse_items(rep: httpx.Response, kind: str, limit: int = -1):
         Cls, key = User, "users"
     elif kind == "tweet":
         Cls, key = Tweet, "tweets"
+    elif kind == "list":
+        Cls, key = List, "lists"
     else:
         raise ValueError(f"Invalid kind: {kind}")
 
     # check for dict, because httpx.Response can be mocked in tests with different type
     res = rep if isinstance(rep, dict) else rep.json()
     obj = to_old_rep(res)
-
     ids = set()
     for x in obj[key].values():
         if limit != -1 and len(ids) >= limit:
@@ -666,6 +693,9 @@ def parse_tweets(rep: httpx.Response, limit: int = -1) -> Generator[Tweet, None,
 
 def parse_users(rep: httpx.Response, limit: int = -1) -> Generator[User, None, None]:
     return _parse_items(rep, "user", limit)  # type: ignore
+
+def parse_lists(rep: httpx.Response, limit: int = -1) -> Generator[List, None, None]:
+    return _parse_items(rep, "list", limit)  # type: ignore
 
 
 def parse_tweet(rep: httpx.Response, twid: int) -> Tweet | None:
