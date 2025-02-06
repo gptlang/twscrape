@@ -11,6 +11,7 @@ from .utils import encode_params, find_obj, get_by_path
 
 # OP_{NAME} – {NAME} should be same as second part of GQL ID (required to auto-update script)
 OP_SearchTimeline = "jiR2G5DAUAraqAYpcg9O-g/SearchTimeline"
+OP_ListMembers = "tWmAZLQ9yIIX1bg4wfv8Hg/ListMembers"
 OP_UserByRestId = "LWxkCeL8Hlx0-f24DmPAJw/UserByRestId"
 OP_UserByScreenName = "QGIw94L0abhuohrr76cSbw/UserByScreenName"
 OP_TweetDetail = "GtcBtFhtQymrpxAs5MALVA/TweetDetail"
@@ -178,6 +179,22 @@ class API:
                 else:
                     for x in parse_tweets(rep.json(), limit):
                         yield x
+
+    # list_by_id
+    async def list_members(self, list_id: int, limit: int = -1, kv=None):
+        async with aclosing(self.list_members_raw(list_id, kv)) as gen:
+            async for rep in gen:
+                for x in parse_users(rep.json(), limit):
+                    yield x
+
+        
+    async def list_members_raw(self, list_id: int, kv=None):
+        op = OP_ListMembers
+        kv = {"listId": str(list_id), "count": 20, **(kv or {})}
+        ft = {"responsive_web_jetfuel_frame":True, "responsive_web_grok_analysis_button_from_backend": True, "responsive_web_grok_image_annotation_enabled": True}
+        async with aclosing(self._gql_items(op, kv, ft)) as gen:
+            async for x in gen:
+                yield x
 
     # user_by_id
 
