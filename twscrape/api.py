@@ -123,12 +123,15 @@ class API:
                 if queue in ("UserMedia",):
                     params["fieldToggles"] = {"withArticlePlainText": False}
 
+
                 rep = await client.get(f"{GQL_URL}/{op}", params=encode_params(params))
                 if rep is None:
                     return
 
                 obj = rep.json()
                 els = get_by_path(obj, "entries") or []
+                if len(els) == 1:
+                    els = get_by_path(obj, "moduleItems") or []
                 els = [
                     x
                     for x in els
